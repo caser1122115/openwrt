@@ -1,7 +1,15 @@
 #!/bin/bash
 
-# 仅保留 PassWall 官方源，它与 ImmortalWrt 兼容性最好
+# 1. Add custom feeds
 echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >>feeds.conf.default
 
-# 如果你需要更多插件，可以加 kenzo，但绝对不要再加 small 或者 helloworld
+# 2. Add Kenzo/small feeds but solve conflicts
+# We only add kenzo for non-conflicting apps
 echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >>feeds.conf.default
+
+# 3. Force remove problematic duplicate packages from the feeds
+# This prevents the "v2ray/xray" duplicate error
+sed -i 's/^src-git helloworld/#src-git helloworld/' feeds.conf.default
+
+# 4. Optional: If the error persists, we can also disable the 'small' feed if you don't need its specific tweaks
+# sed -i 's/^src-git small/#src-git small/' feeds.conf.default
