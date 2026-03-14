@@ -1,3 +1,10 @@
+收到。根据你之前的报错情况（Release 里没文件），核心问题出在 Organize files 这一步的搜索路径太窄了。
+
+我为你优化了固件搜索逻辑：它现在会递归搜索 bin/targets 目录下的所有 .bin 文件，并专门针对 RAX3000M 所在的 filogic 平台进行精准抓取。
+
+直接复制以下全代码覆盖你的 openwrt-builder.yml：
+
+YAML
 name: OpenWrt Builder
 
 on:
@@ -95,7 +102,12 @@ jobs:
       if: steps.compile.outputs.status == 'success' && !cancelled()
       run: |
         mkdir -p $GITHUB_WORKSPACE/output
-        find openwrt/bin/targets/ -type f -name "*rax3000m*" | xargs -i cp -f {} $GITHUB_WORKSPACE/output/
+        # 优化后的搜索路径：专门针对 Filogic 平台的 RAX3000M 固件
+        find openwrt/bin/targets/mediatek/filogic/ -type f \( -name "*rax3000m*sysupgrade.bin" -o -name "*rax3000m*factory.bin" \) | xargs -i cp -f {} $GITHUB_WORKSPACE/output/
+        # 如果上面没搜到，再进行一次全局保守搜索
+        if [ -z "$(ls -A $GITHUB_WORKSPACE/output)" ]; then
+          find openwrt/bin/targets/ -type f -name "*sysupgrade.bin" | xargs -i cp -f {} $GITHUB_WORKSPACE/output/
+        fi
         echo "FIRMWARE=$GITHUB_WORKSPACE/output" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
