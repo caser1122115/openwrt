@@ -61,10 +61,10 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
-
-    - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
     - name: Load custom configuration
       run: |
@@ -87,7 +87,6 @@ jobs:
       id: compile
       run: |
         cd openwrt
-        echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -106,11 +105,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: OpenWrt_RAX3000M_6.12_${{ github.run_id }}
+        tag_name: RAX3000M_6.12_${{ github.run_id }}
         files: ${{ env.FIRMWARE }}/*
-        body: |
-          RAX3000M 6.12 Kernel Firmware
-          Build Date: 2026.03.14
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
