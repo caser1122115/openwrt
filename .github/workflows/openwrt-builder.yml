@@ -95,12 +95,19 @@ jobs:
       if: steps.compile.outputs.status == 'success' && !cancelled()
       run: |
         mkdir -p $GITHUB_WORKSPACE/output
-        # 优化后的搜索路径：专门针对 Filogic 平台的 RAX3000M 固件
-        find openwrt/bin/targets/mediatek/filogic/ -type f \( -name "*rax3000m*sysupgrade.bin" -o -name "*rax3000m*factory.bin" \) | xargs -i cp -f {} $GITHUB_WORKSPACE/output/
-        # 如果上面没搜到，再进行一次全局保守搜索
+        # 核心修改：全局递归搜索，只要包含 sysupgrade 或 factory 且后缀是 .bin 或 .itb 的通通抓走
+        find openwrt/bin/targets/ -type f \( -name "*sysupgrade*" -o -name "*factory*" \) \( -name "*.bin" -o -name "*.itb" \) | xargs -i cp -f {} $GITHUB_WORKSPACE/output/
+        
+        # 强制检查：在日志中列出文件，确保不是空的
+        echo "Successfully organized files:"
+        ls -lh $GITHUB_WORKSPACE/output
+        
+        # 兜底：如果 output 还是空的，直接让 Action 报错，不浪费时间走 Release
         if [ -z "$(ls -A $GITHUB_WORKSPACE/output)" ]; then
-          find openwrt/bin/targets/ -type f -name "*sysupgrade.bin" | xargs -i cp -f {} $GITHUB_WORKSPACE/output/
+          echo "ERROR: No firmware found!"
+          exit 1
         fi
+        
         echo "FIRMWARE=$GITHUB_WORKSPACE/output" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -110,7 +117,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: RAX3000M_6.12_${{ github.run_id }}
+        tag_name: RAX300M_6.12_${{ github.run_id }}
         files: ${{ env.FIRMWARE }}/*
 
     - name: Delete workflow runs
